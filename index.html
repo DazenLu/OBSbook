@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      :root {
+        --primary-color: #8B0000; 
+        --bg-color: #fdf2f2;
+        --text-color: #333;
+      }
+      body {
+        font-family: "Microsoft JhengHei", 微軟正黑體, sans-serif;
+        background-color: var(--bg-color);
+        margin: 0;
+        padding: 15px;
+        color: var(--text-color);
+        font-size: 20px;
+      }
+      .container { max-width: 100%; margin: 0 auto; }
+      .header {
+        text-align: center;
+        color: var(--primary-color);
+        margin-bottom: 20px;
+        font-weight: bold;
+        font-size: 26px;
+      }
+      .search-container {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+      }
+      .search-row {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      select, input {
+        font-size: 20px;
+        padding: 12px;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      /* 位置查詢的選單群組 */
+      .location-group {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+      .location-group select { flex: 1; padding: 10px 5px; }
+
+      button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 15px;
+        font-size: 22px;
+        border-radius: 8px;
+        width: 100%;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 10px;
+      }
+      .btn-home { background-color: #666; margin-top: 30px; }
+      
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        margin-top: 10px;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      th { background-color: var(--primary-color); color: white; padding: 12px; font-size: 18px; }
+      td { border-bottom: 1px solid #ddd; padding: 15px 10px; text-align: center; font-size: 18px; }
+      
+      .no-data { text-align: center; padding: 40px; font-size: 22px; }
+      .hidden { display: none; }
+      #loading { text-align: center; color: var(--primary-color); padding: 20px; font-weight: bold; }
+      .hint { font-size: 16px; color: #888; margin-bottom: 5px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">📚 OBS 書籍查詢系統</div>
+
+      <div id="searchView">
+        <div class="search-container">
+          <div class="search-row">
+            <div>
+              <div class="hint">🔍 查詢方式</div>
+              <select id="searchType" onchange="toggleInputMode()">
+                <option value="書名">📖 書名查詢</option>
+                <option value="位置">📍 位置查詢</option>
+              </select>
+            </div>
+
+            <div id="bookInputArea">
+              <div class="hint">⌨️ 請輸入關鍵字</div>
+              <input type="text" id="keyword" placeholder="請輸入書名或書名的一部份">
+            </div>
+
+            <div id="locationInputArea" class="hidden">
+              <div class="hint">🗺️ 請選擇位置 (區-欄-層)</div>
+              <div class="location-group">
+                <select id="loc_1">
+                  <option value="甲">甲</option><option value="乙">乙</option>
+                  <option value="丙">丙</option><option value="丁">丁</option>
+                </select>
+                <span>-</span>
+                <select id="loc_2">
+                  <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                </select>
+                <span>-</span>
+                <select id="loc_3">
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button onclick="doSearch()">🚀 開始查詢</button>
+      </div>
+
+      <div id="loading" class="hidden">⏳ 正在搜尋中，請稍候...</div>
+
+      <div id="resultView" class="hidden">
+        <div id="tableContainer"></div>
+        <button class="btn-home" onclick="goHome()">🏠 回首頁</button>
+      </div>
+    </div>
+
+    <script>
+      // 切換輸入模式
+      function toggleInputMode() {
+        const type = document.getElementById('searchType').value;
+        if (type === '書名') {
+          document.getElementById('bookInputArea').classList.remove('hidden');
+          document.getElementById('locationInputArea').classList.add('hidden');
+        } else {
+          document.getElementById('bookInputArea').classList.add('hidden');
+          document.getElementById('locationInputArea').classList.remove('hidden');
+        }
+      }
+
+      function doSearch() {
+        const type = document.getElementById('searchType').value;
+        let finalKeyword = "";
+
+        if (type === '書名') {
+          finalKeyword = document.getElementById('keyword').value.trim();
+          if (!finalKeyword) {
+            alert("⚠️ 請輸入書名關鍵字");
+            return;
+          }
+        } else {
+          // 組合位置字串：例如「乙-A-1」
+          const p1 = document.getElementById('loc_1').value;
+          const p2 = document.getElementById('loc_2').value;
+          const p3 = document.getElementById('loc_3').value;
+          finalKeyword = p1 + "-" + p2 + "-" + p3;
+        }
+
+        document.getElementById('searchView').classList.add('hidden');
+        document.getElementById('loading').classList.remove('hidden');
+
+        google.script.run
+          .withSuccessHandler(showResults)
+          .searchData(type, finalKeyword);
+      }
+
+      function showResults(results) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('resultView').classList.remove('hidden');
+        
+        const container = document.getElementById('tableContainer');
+        
+        if (results.length === 0) {
+          container.innerHTML = '<div class="no-data">❌ 找不到相關資料<br><span style="font-size:16px">請嘗試更換關鍵字</span></div>';
+          return;
+        }
+
+        let html = '<table><thead><tr><th>書名</th><th>位置</th><th>數量</th></tr></thead><tbody>';
+        results.forEach(item => {
+          html += `<tr>
+            <td>${item.bookName}</td>
+            <td>📍${item.location}</td>
+            <td>${item.count}</td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+      }
+
+      function goHome() {
+        document.getElementById('resultView').classList.add('hidden');
+        document.getElementById('searchView').classList.remove('hidden');
+        document.getElementById('keyword').value = '';
+        document.getElementById('tableContainer').innerHTML = '';
+      }
+    </script>
+  </body>
+</html>

@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
   <head>
-    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS 書籍查詢系統 📖</title>
     <style>
       :root {
-        --primary-color: #8B0000; 
+        --primary-color: #8B0000; /* 藏紅色 */
         --bg-color: #fdf2f2;
         --text-color: #333;
       }
@@ -14,9 +16,9 @@
         margin: 0;
         padding: 15px;
         color: var(--text-color);
-        font-size: 20px;
+        font-size: 20px; /* 大字體適合長輩 */
       }
-      .container { max-width: 100%; margin: 0 auto; }
+      .container { max-width: 600px; margin: 0 auto; }
       .header {
         text-align: center;
         color: var(--primary-color);
@@ -44,7 +46,6 @@
         width: 100%;
         box-sizing: border-box;
       }
-      /* 位置查詢的選單群組 */
       .location-group {
         display: flex;
         gap: 5px;
@@ -64,6 +65,7 @@
         font-weight: bold;
         margin-top: 10px;
       }
+      button:active { opacity: 0.8; }
       .btn-home { background-color: #666; margin-top: 30px; }
       
       table {
@@ -134,6 +136,9 @@
     </div>
 
     <script>
+      // 您的 GAS API 網址
+      const GAS_URL = "https://script.google.com/macros/s/AKfycbxmuv3bqMWDHgTVRcU_qdQWY9X49bFGaWBsONOTri1jNYXTw-F7kSFEqH5I6PaOmWBY/exec";
+
       // 切換輸入模式
       function toggleInputMode() {
         const type = document.getElementById('searchType').value;
@@ -146,6 +151,7 @@
         }
       }
 
+      // 執行查詢 (使用 fetch API 代替 google.script.run)
       function doSearch() {
         const type = document.getElementById('searchType').value;
         let finalKeyword = "";
@@ -157,28 +163,41 @@
             return;
           }
         } else {
-          // 組合位置字串：例如「乙-A-1」
+          // 組合位置字串：甲-A-1
           const p1 = document.getElementById('loc_1').value;
           const p2 = document.getElementById('loc_2').value;
           const p3 = document.getElementById('loc_3').value;
-          finalKeyword = p1 + "-" + p2 + "-" + p3;
+          finalKeyword = `${p1}-${p2}-${p3}`;
         }
 
+        // 切換畫面到「載入中」
         document.getElementById('searchView').classList.add('hidden');
         document.getElementById('loading').classList.remove('hidden');
 
-        google.script.run
-          .withSuccessHandler(showResults)
-          .searchData(type, finalKeyword);
+        // 呼叫 GAS API
+        fetch(GAS_URL, {
+          method: "POST",
+          body: JSON.stringify({ type: type, keyword: finalKeyword })
+        })
+        .then(response => response.json())
+        .then(results => {
+          showResults(results);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert("❌ 查詢發生錯誤，請檢查網路連線或 GAS 部署設定。");
+          goHome();
+        });
       }
 
+      // 顯示查詢結果表格
       function showResults(results) {
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('resultView').classList.remove('hidden');
         
         const container = document.getElementById('tableContainer');
         
-        if (results.length === 0) {
+        if (!results || results.length === 0) {
           container.innerHTML = '<div class="no-data">❌ 找不到相關資料<br><span style="font-size:16px">請嘗試更換關鍵字</span></div>';
           return;
         }
@@ -195,8 +214,10 @@
         container.innerHTML = html;
       }
 
+      // 返回首頁，重設介面
       function goHome() {
         document.getElementById('resultView').classList.add('hidden');
+        document.getElementById('loading').classList.add('hidden');
         document.getElementById('searchView').classList.remove('hidden');
         document.getElementById('keyword').value = '';
         document.getElementById('tableContainer').innerHTML = '';

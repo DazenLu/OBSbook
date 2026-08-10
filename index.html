@@ -109,12 +109,15 @@
               <div class="hint">🗺️ 請選擇位置 (區-欄-層)</div>
               <div class="location-group">
                 <select id="loc_1">
-                  <option value="甲">甲</option><option value="乙">乙</option>
-                  <option value="丙">丙</option><option value="丁">丁</option>
+                  <option value="甲">甲</option>
+                  //<option value="乙">乙</option>
+                  //<option value="丙">丙</option>
+                  <option value="丁">丁</option>
                 </select>
                 <span>-</span>
                 <select id="loc_2">
-                  <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                  <option value="A">A</option><option value="B">B</option>
+                  //<option value="C">C</option>
                 </select>
                 <span>-</span>
                 <select id="loc_3">
@@ -198,7 +201,7 @@
         const container = document.getElementById('tableContainer');
         
         if (!results || results.length === 0) {
-          container.innerHTML = '<div class="no-data">❌ 找不到相關資料<br><span style="font-size:16px">請嘗試更換關鍵字</span></div>';
+          container.innerHTML = '<div class="no-data">❌ 找不到相關書籍<br><span style="font-size:16px">請嘗試更換關鍵字</span></div>';
           return;
         }
 
